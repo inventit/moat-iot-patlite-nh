@@ -85,7 +85,7 @@ class NHRequestBuilder:
         self._light("white", arg)
         return self
 
-    def got_it(self):
+    def ok_got_it(self):
         self.params["ok_got_it"] = True
         return self
 
@@ -102,7 +102,7 @@ print binascii.hexlify(res)
 
 time.sleep(5)
 
-req = NHRequestBuilder().got_it().build()
+req = NHRequestBuilder().ok_got_it().build()
 print"1>> sending"
 s.send(req)
 print"2>> receiving"

@@ -7,8 +7,10 @@
     {
       'target_name': '<(package_name)',
       'sources': [
-        'src/data_collector.c',
-        'src/image_collector.c',
+        'src/nh_controller_mapper.c',
+        'src/nh_controller.c',
+        'src/nh_request_builder.c',
+        'src/nh_response_parser.c',
         'src/<(package_name).c',
        ],
       'product_prefix': '',

@@ -1,5 +1,11 @@
-.key
-.keystore
-.p12
-.pem
-.pem.*
+*.key
+*.keystore
+*.p12
+*.pem
+*.pem.*
+*.pyc
+token.bin
+c/out
+config.gypi
+config.mk
+tcp_server.log
