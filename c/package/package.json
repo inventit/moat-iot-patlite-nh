@@ -18,7 +18,7 @@
           "scope" : "user",
           "attributes" : {
               "ipv4Address" : { "type" : "string" },
-              "port" : { "type" : "int16" },
+              "port" : { "type" : "int32" },
               "red" : { "type" : "string" },
               "yellow" : { "type" : "string" },
               "green" : { "type" : "string" },
