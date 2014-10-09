@@ -22,7 +22,7 @@ struct NHControllerMapper_ {
   Moat Moat;
   MoatObject *Repo;
   sse_pointer RemoteCallContext;
-  sse_int (*RemoteCallProc)(sse_pointer);
+  sse_int (*RemoteCallProc)(sse_pointer, sse_char *, sse_int);
   NHRequestBuilder *RequestBuilder;
   NHResponseParser *ResponseParser;
 };
@@ -44,11 +44,12 @@ NHControllerMapper_AddProc(Moat in_moat, sse_char *in_uid, MoatObject *in_object
   if (err) {
     goto on_error;
   }
-
   err = SSE_E_OK;
   goto finally;
 
 on_error:
+  NHCM_LOG_ERROR("err=[%d]", err);
+
 finally:
   NHCM_LEAVE();
   return err;
@@ -81,6 +82,8 @@ NHControllerMapper_UpdateProc(Moat in_moat, sse_char *in_uid, MoatObject *in_obj
   goto finally;
 
 on_error:
+  NHCM_LOG_ERROR("err=[%d]", err);
+
 finally:
   NHCM_LEAVE();
   return err;
@@ -142,6 +145,8 @@ NHControllerMapper_UpdateFieldProc(Moat in_moat, sse_char *in_uid, MoatObject *i
   goto finally;
 
 on_error:
+  NHCM_LOG_ERROR("err=[%d]", err);
+
 finally:
   NHCM_LEAVE();
   return err;
@@ -166,6 +171,8 @@ NHControllerMapper_RemoveProc(Moat in_moat, sse_char *in_uid, sse_pointer in_mod
   goto finally;
 
 on_error:
+  NHCM_LOG_ERROR("err=[%d]", err);
+
 finally:
   NHCM_LEAVE();
   return err;
@@ -193,6 +200,8 @@ NHControllerMapper_FindByUidProc(Moat in_moat, sse_char *in_uid, MoatObject **ou
   goto finally;
 
 on_error:
+  NHCM_LOG_ERROR("err=[%d]", err);
+
 finally:
   NHCM_LEAVE();
   return err;
@@ -242,6 +251,8 @@ on_error:
     }
     sse_slist_free(uids);
   }
+  NHCM_LOG_ERROR("err=[%d]", err);
+
 finally:
   NHCM_LEAVE();
   return err;
@@ -261,13 +272,15 @@ NHControllerMapper_CountProc(Moat moat, sse_uint *out_count, sse_pointer in_mode
   goto finally;
 
 on_error:
+  NHCM_LOG_ERROR("err=[%d]", err);
+
 finally:
   NHCM_LEAVE();
   return err;
 }
 
 NHControllerMapper *
-NHControllerMapper_New(sse_pointer in_context, sse_int (*PerformRemoteCallProc)(sse_pointer), NHRequestBuilder* in_builder, NHResponseParser *in_parser)
+NHControllerMapper_New(sse_pointer in_context, sse_int (*PerformRemoteCallProc)(sse_pointer, sse_char *, sse_int), NHRequestBuilder* in_builder, NHResponseParser *in_parser)
 {
   NHControllerMapper *instance = NULL;
 
@@ -363,15 +376,31 @@ NHController_okGotIt(Moat moat, sse_char *in_uid, sse_char *in_key, MoatValue *i
   NHControllerMapper *self = NULL;
   NHRequestBuilder *builder = NULL;
   sse_int err = SSE_E_OK;
+  MoatObject *object = NULL;
+  sse_char *ipv4_address = NULL;
+  sse_uint ipv4_address_len = 0;
+  sse_int32 port = 0;
 
   NHCM_ENTER();
   self = (NHControllerMapper *) in_model_context;
   builder = self->RequestBuilder;
+  err = NHControllerMapper_FindByUidProc(moat, in_uid, &object, in_model_context);
+  if (err) {
+    goto on_error;
+  }
+  err = moat_object_get_string_value(object, "ipv4Address", &ipv4_address, &ipv4_address_len);
+  if (err) {
+    goto on_error;
+  }
+  err = moat_object_get_int32_value(object, "port", &port);
+  if (err) {
+    goto on_error;
+  }
   err = NHRequestBuilder_GotIt(builder);
   if (err) {
     goto on_error;
   }
-  err = self->RemoteCallProc(self->RemoteCallContext);
+  err = self->RemoteCallProc(self->RemoteCallContext, ipv4_address, (sse_int) port);
   if (err) {
     goto on_error;
   }
@@ -379,6 +408,8 @@ NHController_okGotIt(Moat moat, sse_char *in_uid, sse_char *in_key, MoatValue *i
   err = SSE_E_OK;
   goto finally;
 on_error:
+  NHCM_LOG_ERROR("err=[%d]", err);
+
 finally:
   NHCM_LEAVE();
   return err;
@@ -391,8 +422,12 @@ NHController_apply(Moat moat, sse_char *in_uid, sse_char *in_key, MoatValue *in_
   NHRequestBuilder *builder = NULL;
   sse_int err = SSE_E_OK;
   MoatObject *object = NULL;
+  sse_char *ipv4_address = NULL;
+  sse_uint ipv4_address_len = 0;
+  sse_int32 port = 0;
   sse_char *arg = NULL;
   sse_uint arg_len = 0;
+  MoatValue *value;
 
   NHCM_ENTER();
   self = (NHControllerMapper *) in_model_context;
@@ -401,6 +436,19 @@ NHController_apply(Moat moat, sse_char *in_uid, sse_char *in_key, MoatValue *in_
   if (err) {
     goto on_error;
   }
+  err = moat_object_get_string_value(object, "ipv4Address", &ipv4_address, &ipv4_address_len);
+  if (err) {
+    NHCM_LOG_ERROR("ipv4Address is missing.", err);
+    err = SSE_E_NOTCONN;
+    goto on_error;
+  }
+  value = moat_object_get_value(object, "port");
+  if (value == NULL) {
+    NHCM_LOG_ERROR("port is missing.", err);
+    err = SSE_E_INVAL;
+    goto on_error;
+  }
+  port = *((sse_int32 *) moat_value_peek_value(value));
   err = moat_object_get_string_value(object, "red", &arg, &arg_len);
   if (SSE_E_OK == err) {
     err = NHRequestBuilder_Red(builder, arg);
@@ -443,7 +491,7 @@ NHController_apply(Moat moat, sse_char *in_uid, sse_char *in_key, MoatValue *in_
       goto on_error;
     }
   }
-  err = self->RemoteCallProc(self->RemoteCallContext);
+  err = self->RemoteCallProc(self->RemoteCallContext, ipv4_address, port);
   if (err) {
     goto on_error;
   }
@@ -451,6 +499,8 @@ NHController_apply(Moat moat, sse_char *in_uid, sse_char *in_key, MoatValue *in_
   err = SSE_E_OK;
   goto finally;
 on_error:
+  NHCM_LOG_ERROR("err=[%d]", err);
+
 finally:
   NHCM_LEAVE();
   return err;
@@ -473,6 +523,8 @@ NHController_load(Moat moat, sse_char *in_uid, sse_char *in_key, MoatValue *in_d
   err = SSE_E_OK;
   goto finally;
 on_error:
+  NHCM_LOG_ERROR("err=[%d]", err);
+
 finally:
   NHCM_LEAVE();
   return err;

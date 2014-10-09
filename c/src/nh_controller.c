@@ -30,104 +30,12 @@
 #define NHC_LEAVE()                  NHC_LOG_TRACE("leave")
 
 struct NHController_ {
-  sse_int SocketFd;
-  sse_char *IpV4Address;
-  sse_int Port;
   NHRequestBuilder *RequestBuilder;
   NHResponseParser *ResponseParser;
-  sse_int LastError;
   sse_byte RecvBuffer[64];
   NHControllerMapper *ControllerMapper;
 	Moat Moat;
 };
-
-static sse_int
-NHController_PerformRemoteCallProc(sse_pointer context)
-{
-  NHController *self = NULL;
-  sse_int err = SSE_E_OK;
-  sse_byte *payload = NULL;
-  sse_size len = 0;
-  
-  NHC_ENTER();
-  if (context == NULL) {
-    err = SSE_E_INVAL;
-    goto on_error;
-  }
-  self = (NHController *) context;
-  err = NHRequestBuilder_Build(self->RequestBuilder, &payload, &len);
-  if (err) {
-    goto on_error;
-  }
-  err = send(self->SocketFd, payload, sizeof(payload), 0);
-  if (err < 0) {
-    NHC_LOG_ERROR("Failed to send packets. errno=[%d]", errno);
-    err = SSE_E_TIMEDOUT;
-    goto on_error;
-  }
-  len = recv(self->SocketFd, self->RecvBuffer, sizeof(self->RecvBuffer) - 1, 0);
-  if (len < 0) {
-    NHC_LOG_ERROR("Failed to receive packets. errno=[%d]", errno);
-    err = SSE_E_TIMEDOUT;
-    goto on_error;
-  }
-  err = NHResponseParser_Parse(self->ResponseParser, self->RecvBuffer, len);
-  if (err) {
-    goto on_error;
-  }
-  if (self->ResponseParser->IsStatusOk != sse_true) {
-    err = SSE_E_GENERIC;
-    goto on_error;
-  }
-
-  err = SSE_E_OK;
-  goto finally;
-
-on_error:
-finally:
-  NHC_LEAVE();
-  return err;
-}
-
-NHController *
-NHController_New(Moat in_moat)
-{
-  NHController *instance = NULL;
-  sse_int err = SSE_E_OK;
-  ModelMapper * mapper = NULL;
-
-  NHC_ENTER();
-  instance = sse_malloc(sizeof(NHController));
-  if (instance == NULL) {
-    NHC_LOG_ERROR("No memory.");
-    goto on_error;
-  }
-  instance->SocketFd = -1;
-  instance->IpV4Address = NULL;
-  instance->Port = -1;
-  instance->RequestBuilder = NHRequestBuilder_New();
-  instance->ResponseParser = NHResponseParser_New();
-  instance->LastError = 0;
-  instance->ControllerMapper = NHControllerMapper_New(instance, NHController_PerformRemoteCallProc, instance->RequestBuilder, instance->ResponseParser);
-  instance->Moat = in_moat;
-  mapper = NHControllerMapper_GetModelMapper(instance->ControllerMapper);
-  err = moat_register_model(in_moat, "NHController", mapper, instance);
-  if (err) {
-    goto on_error;
-  }
-
-  goto finally;
-
-on_error:
-  if (instance != NULL) {
-    NHController_Delete(instance);
-    instance = NULL;
-  }
-  
-finally:
-  NHC_LEAVE();
-  return instance;
-}
 
 void
 NHController_Delete(NHController *self)
@@ -225,7 +133,9 @@ socket_connect(sse_int in_sockfd, sse_char *in_ipv4_address, sse_int in_port)
     goto on_error;
   }
   
+  NHC_LOG_INFO("Trying to connect [%s] on port:[%d]", in_ipv4_address, in_port);
   err = connect(in_sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+  NHC_LOG_INFO("Done. connect() => [%d]", err);
   if (err) {
     NHC_LOG_ERROR("Failed to perform connect() => errno=[%d]", errno);
     err = SSE_E_INVAL;
@@ -242,50 +152,107 @@ finally:
   return err;
 }
 
-sse_int
-NHController_Begin(NHController *self)
+static sse_int
+NHController_PerformRemoteCallProc(sse_pointer context, sse_char *in_ipv4_address, sse_int in_port)
 {
+  NHController *self = NULL;
   sse_int err = SSE_E_OK;
+  sse_byte *payload = NULL;
+  sse_size len = 0;
+  sse_int sockfd = -1;
   
   NHC_ENTER();
-  if (self == NULL) {
-    goto finally;
+  if (context == NULL) {
+    err = SSE_E_INVAL;
+    goto on_error;
   }
-  err = socket_open(&self->SocketFd);
+  self = (NHController *) context;
+  if ((in_ipv4_address == NULL) || (in_port <= 0)) {
+    err = SSE_E_INVAL;
+    NHC_LOG_ERROR("Either IP address[%s] or port[%d] is wrong.", in_ipv4_address, in_port);
+    goto on_error;
+  }
+
+  err = socket_open(&sockfd);
+  if (err) {
+    NHC_LOG_ERROR("Failed to open a socket.");
+    goto on_error;
+  }
+  err = socket_connect(sockfd, in_ipv4_address, in_port);
+  if (err) {
+    NHC_LOG_ERROR("Failed to connect IP address[%s] on port[%d].", in_ipv4_address, in_port);
+    goto on_error;
+  }
+
+  err = NHRequestBuilder_Build(self->RequestBuilder, &payload, &len);
   if (err) {
     goto on_error;
   }
-  err = socket_connect(self->SocketFd, self->IpV4Address, self->Port);
+  err = send(sockfd, payload, sizeof(payload), 0);
+  if (err < 0) {
+    NHC_LOG_ERROR("Failed to send packets. errno=[%d]", errno);
+    err = SSE_E_TIMEDOUT;
+    goto on_error;
+  }
+  len = recv(sockfd, self->RecvBuffer, sizeof(self->RecvBuffer) - 1, 0);
+  if (len < 0) {
+    NHC_LOG_ERROR("Failed to receive packets. errno=[%d]", errno);
+    err = SSE_E_TIMEDOUT;
+    goto on_error;
+  }
+  err = NHResponseParser_Parse(self->ResponseParser, self->RecvBuffer, len);
   if (err) {
     goto on_error;
   }
-  
+  if (self->ResponseParser->IsStatusOk != sse_true) {
+    err = SSE_E_GENERIC;
+    goto on_error;
+  }
+
   err = SSE_E_OK;
   goto finally;
 
 on_error:
 finally:
+  if (sockfd >= 0) {
+    close(sockfd);
+  }
   NHC_LEAVE();
   return err;
 }
 
-sse_int
-NHController_End(NHController *self)
+NHController *
+NHController_New(Moat in_moat)
 {
+  NHController *instance = NULL;
   sse_int err = SSE_E_OK;
-  
+  ModelMapper * mapper = NULL;
+
   NHC_ENTER();
-  if (self == NULL) {
-    goto finally;
+  instance = sse_malloc(sizeof(NHController));
+  if (instance == NULL) {
+    NHC_LOG_ERROR("No memory.");
+    goto on_error;
   }
-  if (self->SocketFd >= 0) {
-    close(self->SocketFd);
+  instance->RequestBuilder = NHRequestBuilder_New();
+  instance->ResponseParser = NHResponseParser_New();
+  instance->ControllerMapper = NHControllerMapper_New(instance, NHController_PerformRemoteCallProc, instance->RequestBuilder, instance->ResponseParser);
+  instance->Moat = in_moat;
+  mapper = NHControllerMapper_GetModelMapper(instance->ControllerMapper);
+  err = moat_register_model(in_moat, "NHController", mapper, instance->ControllerMapper);
+  if (err) {
+    goto on_error;
   }
-  err = SSE_E_OK;
+
   goto finally;
 
 on_error:
+  if (instance != NULL) {
+    NHController_Delete(instance);
+    instance = NULL;
+  }
+  
 finally:
   NHC_LEAVE();
-  return err;
+  return instance;
 }

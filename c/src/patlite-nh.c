@@ -35,20 +35,14 @@ moat_app_main(sse_int in_argc, sse_char *argv[])
     goto on_error_before_run;
   }
 
-  err = NHController_Begin(nh_controller);
-  if (err != SSE_E_OK) {
-    goto on_error_before_run;
-  }
+  PLNH_LOG_INFO("Appllication Ready.");
 
   err = moat_run(moat);
   if (err != SSE_E_OK) {
     goto on_error;
   }
   
-  err = NHController_End(nh_controller);
-  if (err != SSE_E_OK) {
-    goto on_error;
-  }
+  PLNH_LOG_INFO("Appllication Terminated.");
 
   err = SSE_E_OK;
   goto finally;

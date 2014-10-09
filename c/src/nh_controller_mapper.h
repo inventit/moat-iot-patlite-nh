@@ -12,7 +12,7 @@ SSE_BEGIN_C_DECLS
 
 typedef struct NHControllerMapper_ NHControllerMapper;
 
-NHControllerMapper * NHControllerMapper_New(sse_pointer in_context, sse_int (*PerformRemoteCallProc)(sse_pointer), NHRequestBuilder* in_builder, NHResponseParser *in_parser);
+NHControllerMapper * NHControllerMapper_New(sse_pointer in_context, sse_int (*PerformRemoteCallProc)(sse_pointer, sse_char *, sse_int), NHRequestBuilder* in_builder, NHResponseParser *in_parser);
 void NHControllerMapper_Delete(NHControllerMapper *self);
 ModelMapper * NHControllerMapper_GetModelMapper(NHControllerMapper *self);
 
