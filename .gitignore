@@ -9,3 +9,4 @@ c/out
 config.gypi
 config.mk
 tcp_server.log
+*.tgz

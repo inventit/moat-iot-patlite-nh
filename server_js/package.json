@@ -1,0 +1,38 @@
+{
+  "name" : "patlite-nh",
+  "version" : "1.0.0",
+  "description" : "an example application controlling patlite NH series",
+  "maintainers" : [
+    {
+      "name" : "inventit dev",
+      "email" : "example@example.com"
+    }
+  ],
+  "bugs" : {
+    "mail" : "example@example.com"
+  },
+  "main" : "patlite-nh.so",
+  "models" : {
+      "NHController" : {
+          "array" : true,
+          "scope" : "user",
+          "attributes" : {
+              "ipv4Address" : { "type" : "string" },
+              "port" : { "type" : "int32" },
+              "red" : { "type" : "string" },
+              "yellow" : { "type" : "string" },
+              "green" : { "type" : "string" },
+              "blue" : { "type" : "string" },
+              "white" : { "type" : "string" },
+              "buzzer" : { "type" : "string" },
+              "codeJson" : { "type" : "string" }
+          },
+          "commands" : {
+              "apply" : { "paramType" : "string" },
+              "okGotIt" : { "paramType" : "string" },
+              "play" : { "paramType" : "string" },
+              "load" : { "paramType" : "string" }
+          }
+      }
+  }
+}
