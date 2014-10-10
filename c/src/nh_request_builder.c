@@ -139,16 +139,16 @@ to_nhrb_light(sse_char *arg)
   if (arg == NULL) {
     return LIGHT_NOT_CHANGE;
   }
-  if (sse_strncmp("OFF", arg, 10) == 0) {
+  if (sse_strcmp("OFF", arg) == 0) {
     return LIGHT_OFF;
   }
-  if (sse_strncmp("ALWAYS_ON", arg, 10) == 0) {
+  if (sse_strcmp("ALWAYS_ON", arg) == 0) {
     return LIGHT_ALWAYS_ON;
   }
-  if (sse_strncmp("BLINK1", arg, 10) == 0) {
+  if (sse_strcmp("BLINK1", arg) == 0) {
     return LIGHT_BLINK1;
   }
-  if (sse_strncmp("BLINK2", arg, 10) == 0) {
+  if (sse_strcmp("BLINK2", arg) == 0) {
     return LIGHT_BLINK2;
   }
   return LIGHT_NOT_CHANGE;
@@ -237,19 +237,19 @@ to_nhrb_buzzer(sse_char *arg)
   if (arg == NULL) {
     return BUZZER_NOT_CHANGE;
   }
-  if (sse_strncmp("OFF", arg, 10) == 0) {
+  if (sse_strcmp("OFF", arg) == 0) {
     return BUZZER_OFF;
   }
-  if (sse_strncmp("SIREN1", arg, 10) == 0) {
+  if (sse_strcmp("SIREN1", arg) == 0) {
     return BUZZER_SIREN1;
   }
-  if (sse_strncmp("SIREN2", arg, 10) == 0) {
+  if (sse_strcmp("SIREN2", arg) == 0) {
     return BUZZER_SIREN2;
   }
-  if (sse_strncmp("SIREN3", arg, 10) == 0) {
+  if (sse_strcmp("SIREN3", arg) == 0) {
     return BUZZER_SIREN3;
   }
-  if (sse_strncmp("SIREN4", arg, 10) == 0) {
+  if (sse_strcmp("SIREN4", arg) == 0) {
     return BUZZER_SIREN4;
   }
   return BUZZER_NOT_CHANGE;
@@ -328,7 +328,7 @@ NHRequestBuilder_Blue(NHRequestBuilder *self, sse_char *arg)
 }
 
 sse_int
-NHRequestBuilder_GotIt(NHRequestBuilder *self)
+NHRequestBuilder_OkGotIt(NHRequestBuilder *self)
 {
   NHRB_ENTER();
   self->OkGotIt = sse_true;

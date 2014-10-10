@@ -380,6 +380,7 @@ NHController_okGotIt(Moat moat, sse_char *in_uid, sse_char *in_key, MoatValue *i
   sse_char *ipv4_address = NULL;
   sse_uint ipv4_address_len = 0;
   sse_int32 port = 0;
+  MoatValue *value;
 
   NHCM_ENTER();
   self = (NHControllerMapper *) in_model_context;
@@ -392,11 +393,14 @@ NHController_okGotIt(Moat moat, sse_char *in_uid, sse_char *in_key, MoatValue *i
   if (err) {
     goto on_error;
   }
-  err = moat_object_get_int32_value(object, "port", &port);
-  if (err) {
+  value = moat_object_get_value(object, "port");
+  if (value == NULL) {
+    NHCM_LOG_ERROR("port is missing.", err);
+    err = SSE_E_INVAL;
     goto on_error;
   }
-  err = NHRequestBuilder_GotIt(builder);
+  port = *((sse_int32 *) moat_value_peek_value(value));
+  err = NHRequestBuilder_OkGotIt(builder);
   if (err) {
     goto on_error;
   }

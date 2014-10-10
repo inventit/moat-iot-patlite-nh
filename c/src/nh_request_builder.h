@@ -22,7 +22,7 @@ sse_int NHRequestBuilder_Yellow(NHRequestBuilder *self, sse_char *in_arg);
 sse_int NHRequestBuilder_Green(NHRequestBuilder *self, sse_char *in_arg);
 sse_int NHRequestBuilder_White(NHRequestBuilder *self, sse_char *in_arg);
 sse_int NHRequestBuilder_Blue(NHRequestBuilder *self, sse_char *in_arg);
-sse_int NHRequestBuilder_GotIt(NHRequestBuilder *self);
+sse_int NHRequestBuilder_OkGotIt(NHRequestBuilder *self);
 sse_int NHRequestBuilder_TellMe(NHRequestBuilder *self);
 
 SSE_END_C_DECLS

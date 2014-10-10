@@ -37,6 +37,18 @@ struct NHController_ {
 	Moat Moat;
 };
 
+static void
+hexdump(sse_char *buffer, sse_uint len)
+{
+  sse_uint i;
+  sse_char line[len * 3 + 1];
+  for (i = 0; i < len; i++) {
+    sprintf(&line[i * 3], "%02x ", buffer[i]);
+  }
+  line[len * 3] = '\0';
+  NHC_LOG_INFO("HEX:[%s]", line);
+}
+
 void
 NHController_Delete(NHController *self)
 {
@@ -121,11 +133,11 @@ socket_connect(sse_int in_sockfd, sse_char *in_ipv4_address, sse_int in_port)
 {
   sse_int err = SSE_E_OK;
   struct sockaddr_in serv_addr;
-  serv_addr.sin_family = AF_INET;
-  serv_addr.sin_port = htons(in_port);
 
   NHC_ENTER();
   memset(&serv_addr, '0', sizeof(serv_addr)); 
+  serv_addr.sin_family = AF_INET;
+  serv_addr.sin_port = htons(in_port);
   err = inet_pton(AF_INET, in_ipv4_address, &serv_addr.sin_addr);
   if (err <= 0) {
     NHC_LOG_ERROR("Failed to perform inet_pton() => err=[%d]", err);
@@ -188,7 +200,10 @@ NHController_PerformRemoteCallProc(sse_pointer context, sse_char *in_ipv4_addres
   if (err) {
     goto on_error;
   }
-  err = send(sockfd, payload, sizeof(payload), 0);
+  NHC_LOG_INFO("Sends a message. len=%d", len);
+  hexdump(payload, len);
+  err = send(sockfd, payload, len, 0);
+  sse_free(payload);
   if (err < 0) {
     NHC_LOG_ERROR("Failed to send packets. errno=[%d]", errno);
     err = SSE_E_TIMEDOUT;
@@ -199,6 +214,9 @@ NHController_PerformRemoteCallProc(sse_pointer context, sse_char *in_ipv4_addres
     NHC_LOG_ERROR("Failed to receive packets. errno=[%d]", errno);
     err = SSE_E_TIMEDOUT;
     goto on_error;
+  } else {
+    NHC_LOG_INFO("Received a message. len=%d", len);
+    hexdump(self->RecvBuffer, len);
   }
   err = NHResponseParser_Parse(self->ResponseParser, self->RecvBuffer, len);
   if (err) {
