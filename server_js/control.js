@@ -22,9 +22,18 @@ function appendNew() {
       nhControllerMapper.findByUid('demo', {
         success : function(result) {
           controller = result.array[0];
-          control(controller);
+          update(controller);
         }
       });
+    }
+  });
+}
+
+function update(controller) {
+  setValues(controller);
+  nhControllerMapper.update(controller, {
+    success : function(result) {
+      control(controller);
     }
   });
 }
@@ -33,12 +42,12 @@ function setValues(controller) {
   if (args) {
     controller.ipv4Address = args.ipV4Address;
     controller.port = args.port;
-    controller.red = args.red;
-    controller.yellow = args.yellow;
-    controller.green = args.green;
-    controller.blue = args.blue;
-    controller.white = args.white;
-    controller.buzzer = args.buzzer;
+    controller.red = args.red ? args.red : "OFF";
+    controller.yellow = args.yellow ? args.yellow : "OFF";
+    controller.green = args.green ? args.green : "OFF";
+    controller.blue = args.blue ? args.blue : "OFF";
+    controller.white = args.white ? args.white : "OFF";
+    controller.buzzer = args.buzzer ? args.buzzer : "OFF";
     controller.codeJson = args.codeJson;
   }
 
@@ -68,5 +77,3 @@ function control(controller) {
     });
   }
 }
-
-
