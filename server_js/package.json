@@ -11,6 +11,9 @@
   "bugs" : {
     "mail" : "example@example.com"
   },
+  "dependencies": {
+    "moat": ">=1.0.0 <2.0.0"
+  },
   "main" : "patlite-nh.so",
   "models" : {
       "NHController" : {
